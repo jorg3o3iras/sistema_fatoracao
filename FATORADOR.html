@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fatorador Web + Python - PRO v2.6</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/acorn@8.11.2/dist/acorn.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fc; min-height: 100vh; padding: 20px; display: flex; justify-content: center; align-items: flex-start; }
+      .container { max-width: 1400px; width: 100%; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08); padding: 40px; margin-top: 20px; }
+      h1 { font-size: 28px; font-weight: 700; color: #1a2634; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      h1 small { font-size: 16px; font-weight: 400; color: #5b6f82; margin-left: 8px; }
+      .badge-pro { background: linear-gradient(135deg, #9b59b6, #e74c3c); color: #fff; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 700; letter-spacing: 1px; }
+      .subtitle { color: #5b6f82; margin-bottom: 30px; font-size: 15px; border-left: 4px solid #9b59b6; padding-left: 16px; background: #faf5ff; border-radius: 0 8px 8px 0; line-height: 1.6; }
+      .header-actions { display: flex; gap: 12px; margin-left: auto; flex-wrap: wrap; }
+      .upload-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
+      @media (max-width: 1000px) { .upload-slots { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 600px) { .upload-slots { grid-template-columns: 1fr; } }
+      .slot { border: 3px dashed #cbd5e1; border-radius: 14px; padding: 22px 14px; text-align: center; cursor: pointer; transition: all 0.25s; background: #fafcff; position: relative; min-height: 170px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
+      .slot:hover { border-color: #9b59b6; background: #faf5ff; }
+      .slot.dragover { border-color: #9b59b6; background: #f0e6ff; transform: scale(1.02); }
+      .slot.filled { border-style: solid; border-color: #27ae60; background: #f0fff4; }
+      .slot.filled .slot-icon { color: #27ae60; }
+      .slot-icon { font-size: 38px; line-height: 1; }
+      .slot-title { font-size: 14px; font-weight: 700; color: #1a2634; }
+      .slot-hint { font-size: 11.5px; color: #94a3b8; }
+      .slot input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+      .slot-file { display: none; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: #27ae60; word-break: break-all; }
+      .slot.filled .slot-file { display: block; }
+      .slot.filled .slot-hint { display: none; }
+      .slot-remove { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: #fff; border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; cursor: pointer; display: none; align-items: center; justify-content: center; font-weight: 700; z-index: 2; }
+      .slot.filled .slot-remove { display: flex; }
+      .slot-remove:hover { background: #c0392b; }
+      .options-panel { background: linear-gradient(135deg, #faf5ff, #f8faff); border: 2px solid #e6d4f5; border-radius: 16px; padding: 20px 24px; margin-bottom: 30px; }
+      .options-title { font-size: 14px; font-weight: 700; color: #1a2634; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+      .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+      .option-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-radius: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid #e9edf4; }
+      .option-item:hover { border-color: #9b59b6; box-shadow: 0 2px 10px rgba(155, 89, 182, 0.1); }
+      .option-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #9b59b6; }
+      .option-item label { font-size: 13px; color: #2c3e50; cursor: pointer; font-weight: 500; flex: 1; }
+      .option-item .option-hint { font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 2px; }
+      .action-bar { display: flex; justify-content: center; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; }
+      .btn-process { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; border: none; padding: 16px 48px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); }
+      .btn-process:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(155, 89, 182, 0.5); }
+      .btn-process:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+      .btn { padding: 10px 24px; border: none; border-radius: 30px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+      .btn-primary { background: #9b59b6; color: #fff; }
+      .btn-primary:hover:not(:disabled) { background: #8e44ad; transform: translateY(-2px); }
+      .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-success { background: #2ecc71; color: #fff; }
+      .btn-success:hover:not(:disabled) { background: #27ae60; transform: translateY(-2px); }
+      .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-warning { background: #f39c12; color: #fff; }
+      .btn-purple { background: #9b59b6; color: #fff; }
+      .btn-zip { background: linear-gradient(135deg, #f39c12, #e67e22); color: #fff; box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3); }
+      .btn-zip:hover:not(:disabled) { background: linear-gradient(135deg, #e67e22, #d35400); transform: translateY(-2px); }
+      .btn-zip:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-sm { padding: 6px 16px; font-size: 13px; }
+      .progress-container { width: 100%; height: 4px; background: #e9edf4; border-radius: 2px; margin: 10px 0 20px; overflow: hidden; display: none; }
+      .progress-container.show { display: block; }
+      .progress-bar { height: 100%; background: linear-gradient(90deg, #9b59b6, #2ecc71); width: 0%; transition: width 0.3s; border-radius: 2px; }
+      .warnings-panel { background: #fff8e6; border: 1px solid #f39c12; border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; display: none; }
+      .warnings-panel.show { display: block; }
+      .warnings-panel h4 { color: #d68910; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+      .warnings-panel ul { margin-left: 20px; font-size: 12px; color: #5b6f82; }
+      .warnings-panel li { margin-bottom: 4px; }
+      .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; padding: 12px 20px; background: #f8fafc; border-radius: 12px; }
+      .result-header .title { font-weight: 700; color: #1a2634; display: flex; align-items: center; gap: 8px; }
+      .result-header .title .count { background: #e6d4f5; color: #6c3483; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+      .result-header .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      .output-panel { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+      @media (max-width: 900px) { .output-panel { grid-template-columns: 1fr; } }
+      .tree-panel { background: #fafcff; border: 1px solid #e9edf4; border-radius: 14px; padding: 16px; max-height: 640px; overflow: auto; }
+      .tree-panel h3 { font-size: 14px; color: #1a2634; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+      .tree-node { padding: 5px 10px; cursor: pointer; border-radius: 6px; font-size: 12.5px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; color: #2c3e50; font-family: "Fira Code", monospace; }
+      .tree-node:hover:not(.folder) { background: #f0e6ff; }
+      .tree-node.active { background: #e6d4f5; color: #6c3483; font-weight: 600; }
+      .tree-node.folder { color: #5b6f82; font-weight: 600; cursor: default; }
+      .tree-node .size { margin-left: auto; font-size: 10.5px; color: #94a3b8; font-weight: 400; }
+      .code-viewer { background: #fafcff; border: 1px solid #e9edf4; border-radius: 14px; display: flex; flex-direction: column; max-height: 640px; }
+      .code-viewer .header { padding: 12px 18px; border-bottom: 1px solid #e9edf4; display: flex; justify-content: space-between; align-items: center; background: #f4f7fc; border-radius: 14px 14px 0 0; flex-wrap: wrap; gap: 8px; }
+      .code-viewer .header .title { font-weight: 700; color: #1a2634; font-size: 14px; display: flex; align-items: center; gap: 8px; font-family: "Fira Code", monospace; }
+      .code-viewer .header .actions { display: flex; gap: 8px; }
+      .code-viewer .body { padding: 16px 18px; flex: 1; overflow: auto; }
+      .code-viewer .body pre { font-family: "Fira Code", "Cascadia Code", monospace; font-size: 12.5px; line-height: 1.6; color: #1e293b; white-space: pre-wrap; word-break: break-word; }
+      .empty-result { text-align: center; padding: 60px 20px; color: #94a3b8; }
+      .empty-result .icon { font-size: 64px; margin-bottom: 12px; }
+      .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: none; justify-content: center; align-items: center; padding: 20px; }
+      .modal-overlay.show { display: flex; }
+      .modal-content { background: #fff; border-radius: 16px; width: 90%; max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column; }
+      .modal-header { padding: 20px 24px; border-bottom: 1px solid #e9edf4; display: flex; justify-content: space-between; align-items: center; }
+      .modal-header h3 { font-size: 20px; color: #1a2634; }
+      .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: #94a3b8; }
+      .modal-close:hover { color: #e74c3c; }
+      .modal-body { padding: 24px; overflow: auto; flex: 1; }
+      .modal-body iframe { width: 100%; height: 600px; border: none; border-radius: 8px; background: #fff; }
+      .toast { position: fixed; bottom: 30px; right: 30px; background: #1a2634; color: #fff; padding: 16px 28px; border-radius: 12px; font-weight: 500; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); transform: translateY(100px); opacity: 0; transition: all 0.4s; z-index: 999; max-width: 400px; }
+      .toast.show { transform: translateY(0); opacity: 1; }
+      .toast.success { background: #27ae60; }
+      .toast.error { background: #e74c3c; }
+      .toast.info { background: #9b59b6; }
+      .toast.warning { background: #f39c12; }
+      @media (max-width: 600px) {
+        .container { padding: 20px; }
+        h1 { font-size: 22px; }
+        .btn-process { padding: 14px 32px; font-size: 16px; }
+        .slot { min-height: 140px; padding: 16px 12px; }
+        .modal-content { width: 95%; }
+        .modal-body iframe { height: 300px; }
+        .output-panel { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id="app">
+      <header>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h1>
+              📂 Fatorador Web + Python
+              <small>JS + Python → módulos</small>
+              <span class="badge-pro">PRO v2.6</span>
+            </h1>
+            <div class="subtitle">
+              Coloque seus arquivos já separados. O sistema fatora o
+              <strong>JavaScript</strong> em <code>js/functions/</code>,
+              <code>js/classes/</code>, etc. e reescreve o HTML. Se você também
+              enviar um <strong>.py</strong>, ele fatora o Python
+              <strong>independentemente</strong> em <code>py/functions/</code>,
+              <code>py/classes/</code>, <code>py/constants/</code>, gerando
+              imports automáticos, <code>__init__.py</code> e
+              <code>requirements.txt</code>.
+              <br />
+              <span style="font-size: 12px; color: #27ae60">
+                ✅ v2.6 — Helpers de análise restaurados + endLine respeita strings triplas e brackets
+              </span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-purple btn-sm" id="btnToggleDebug">🐛 Debug</button>
+            <button class="btn btn-warning btn-sm" id="btnClearAll">🗑️ Limpar Tudo</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="upload-slots">
+        <div class="slot" data-type="html" id="slotHtml">
+          <button class="slot-remove" data-remove="html" title="Remover">✕</button>
+          <div class="slot-icon">📄</div>
+          <div class="slot-title">HTML</div>
+          <div class="slot-hint">Clique ou arraste <b>.html</b></div>
+          <div class="slot-file" id="slotHtmlFile"></div>
+          <input type="file" accept=".html,.htm" id="inputHtml" />
+        </div>
+        <div class="slot" data-type="css" id="slotCss">
+          <button class="slot-remove" data-remove="css" title="Remover">✕</button>
+          <div class="slot-icon">🎨</div>
+          <div class="slot-title">CSS</div>
+          <div class="slot-hint">Clique ou arraste <b>.css</b></div>
+          <div class="slot-file" id="slotCssFile"></div>
+          <input type="file" accept=".css" id="inputCss" />
+        </div>
+        <div class="slot" data-type="js" id="slotJs">
+          <button class="slot-remove" data-remove="js" title="Remover">✕</button>
+          <div class="slot-icon">📜</div>
+          <div class="slot-title">JavaScript</div>
+          <div class="slot-hint">Clique ou arraste <b>.js</b></div>
+          <div class="slot-file" id="slotJsFile"></div>
+          <input type="file" accept=".js" id="inputJs" />
+        </div>
+        <div class="slot" data-type="py" id="slotPy">
+          <button class="slot-remove" data-remove="py" title="Remover">✕</button>
+          <div class="slot-icon">🐍</div>
+          <div class="slot-title">Python</div>
+          <div class="slot-hint">Clique ou arraste <b>.py</b> (opcional)</div>
+          <div class="slot-file" id="slotPyFile"></div>
+          <input type="file" accept=".py" id="inputPy" />
+        </div>
+      </div>
+
+      <div class="options-panel">
+        <div class="options-title">
+          <i class="fas fa-cog" style="color: #9b59b6"></i> Opções de Fatoração
+        </div>
+        <div class="options-grid">
+          <div class="option-item">
+            <input type="checkbox" id="optPreserveExternal" checked />
+            <label for="optPreserveExternal">Preservar scripts externos
+              <span class="option-hint">Mantém <code>&lt;script src="CDN"&gt;</code> no HTML</span>
+            </label>
+          </div>
+          <div class="option-item">
+            <input type="checkbox" id="optPreserveSpecialScripts" checked />
+            <label for="optPreserveSpecialScripts">Preservar JSON-LD e tipos especiais
+              <span class="option-hint">Mantém <code>ld+json</code>, <code>text/template</code>, etc.</span>
+            </label>
+          </div>
+          <div class="option-item">
+            <input type="checkbox" id="optAddHeader" />
+            <label for="optAddHeader">Adicionar cabeçalho aos arquivos
+              <span class="option-hint">Comentário com nome e data</span>
+            </label>
+          </div>
+          <div class="option-item">
+            <input type="checkbox" id="optPyRequirements" checked />
+            <label for="optPyRequirements">Gerar <code>requirements.txt</code>
+              <span class="option-hint">Lista pacotes pip detectados no Python</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn-process" id="btnProcess" disabled>
+          <i class="fas fa-magic"></i>
+          Fatorar e Gerar Projeto
+        </button>
+      </div>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="warnings-panel" id="warningsPanel">
+        <h4><i class="fas fa-exclamation-triangle"></i> Avisos do Processamento</h4>
+        <ul id="warningsList"></ul>
+      </div>
+
+      <div id="resultContainer" style="display: none">
+        <div class="result-header">
+          <div class="title">
+            ✅ Projeto Gerado
+            <span class="count" id="fileCount">0 arquivos</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-purple btn-sm" id="btnPreview">👁️ Preview</button>
+            <button class="btn btn-zip btn-sm" id="btnDownloadZip">
+              <i class="fas fa-file-archive"></i> Baixar ZIP
+            </button>
+          </div>
+        </div>
+        <div class="output-panel">
+          <div class="tree-panel">
+            <h3><i class="fas fa-folder-tree"></i> Estrutura Gerada</h3>
+            <div id="treeContent"></div>
+          </div>
+          <div class="code-viewer">
+            <div class="header">
+              <span class="title" id="viewerTitle">📄 Selecione um arquivo</span>
+              <div class="actions">
+                <button class="btn btn-primary btn-sm" id="btnCopyFile" disabled>📋 Copiar</button>
+                <button class="btn btn-success btn-sm" id="btnDownloadFile" disabled>⬇️ Baixar</button>
+              </div>
+            </div>
+            <div class="body">
+              <pre id="fileViewer"><span style="color:#94a3b8;font-style:italic;">Clique em um arquivo na árvore para visualizar.</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-result" id="emptyResult">
+        <div class="icon">📂</div>
+        <p style="font-size: 16px">Adicione os arquivos acima e clique em <b>Fatorar</b></p>
+        <p style="font-size: 13px; margin-top: 8px">Aceita projeto Web (HTML/CSS/JS) e/ou Python (app.py)</p>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="previewModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="previewTitle">👁️ Preview</h3>
+          <button class="modal-close" id="previewClose">&times;</button>
+        </div>
+        <div class="modal-body">
+          <iframe id="previewFrame" sandbox="allow-scripts allow-modals"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        if (typeof acorn === "undefined") {
+          document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;"><h2 style="color:#e74c3c;">❌ Biblioteca Acorn não carregou</h2><p>Verifique sua conexão e recarregue a página.</p></div>';
+          return;
+        }
+        console.log("Fatorador PRO v2.6 inicializado");
+
+        var state = { htmlFile: null, cssFile: null, jsFile: null, pyFile: null, result: null };
+        var selectedFile = null;
+        var debugMode = localStorage.getItem("debugMode") === "true";
+        var toastTimer = null;
+        var isProcessing = false;
+
+        var slots = {
+          html: document.getElementById("slotHtml"),
+          css: document.getElementById("slotCss"),
+          js: document.getElementById("slotJs"),
+          py: document.getElementById("slotPy"),
+        };
+        var inputs = {
+          html: document.getElementById("inputHtml"),
+          css: document.getElementById("inputCss"),
+          js: document.getElementById("inputJs"),
+          py: document.getElementById("inputPy"),
+        };
+        var slotFiles = {
+          html: document.getElementById("slotHtmlFile"),
+          css: document.getElementById("slotCssFile"),
+          js: document.getElementById("slotJsFile"),
+          py: document.getElementById("slotPyFile"),
+        };
+        var btnProcess = document.getElementById("btnProcess");
+        var btnClearAll = document.getElementById("btnClearAll");
+        var btnToggleDebug = document.getElementById("btnToggleDebug");
+        var progressContainer = document.getElementById("progressContainer");
+        var progressBar = document.getElementById("progressBar");
+        var warningsPanel = document.getElementById("warningsPanel");
+        var warningsList = document.getElementById("warningsList");
+        var resultContainer = document.getElementById("resultContainer");
+        var emptyResult = document.getElementById("emptyResult");
+        var fileCount = document.getElementById("fileCount");
+        var treeContent = document.getElementById("treeContent");
+        var viewerTitle = document.getElementById("viewerTitle");
+        var fileViewer = document.getElementById("fileViewer");
+        var btnCopyFile = document.getElementById("btnCopyFile");
+        var btnDownloadFile = document.getElementById("btnDownloadFile");
+        var btnPreview = document.getElementById("btnPreview");
+        var btnDownloadZip = document.getElementById("btnDownloadZip");
+        var previewModal = document.getElementById("previewModal");
+        var previewClose = document.getElementById("previewClose");
+        var previewTitle = document.getElementById("previewTitle");
+        var previewFrame = document.getElementById("previewFrame");
+        var toast = document.getElementById("toast");
+        var optAddHeader = document.getElementById("optAddHeader");
+        var optPyRequirements = document.getElementById("optPyRequirements");
+
+        function showToast(msg, type, duration) {
+          type = type || "info"; duration = duration || 3000;
+          if (toastTimer) clearTimeout(toastTimer);
+          toast.textContent = msg;
+          toast.className = "toast " + type;
+          void toast.offsetWidth;
+          toast.classList.add("show");
+          toastTimer = setTimeout(function () { toast.classList.remove("show"); }, duration);
+        }
+        function debug(msg, data) { if (debugMode) console.log("[DEBUG] " + msg, data || ""); }
+        function escapeHtml(t) {
+          return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+        function formatSize(bytes) {
+          if (bytes < 1024) return bytes + " B";
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+          return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+        }
+        function sanitizeName(name, fallback) {
+          var s = String(name == null ? "" : name).trim().replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, "-").replace(/\.+$/g, "").replace(/^\.+/g, "");
+          return s || fallback;
+        }
+        function extOf(name) { return (name.split(".").pop() || "").toLowerCase(); }
+        function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+        function iconForFile(f) {
+          var p = f.path || "";
+          if (f.type === "html" || /\.html?$/i.test(p)) return "📄";
+          if (f.type === "css" || /\.css$/i.test(p)) return "🎨";
+          if (f.type === "js" || /\.js$/i.test(p)) return "📜";
+          if (/\.py$/i.test(p)) return "🐍";
+          if (/\.txt$/i.test(p)) return "📋";
+          return "📄";
+        }
+        function getBaseName() {
+          if (state.htmlFile) return state.htmlFile.name.replace(/\.html?$/i, "");
+          if (state.pyFile) return state.pyFile.name.replace(/\.py$/i, "");
+          return "projeto";
+        }
+
+        function attachUploadSlot(type) {
+          var slot = slots[type], input = inputs[type];
+          slot.addEventListener("click", function (e) {
+            if (e.target.closest(".slot-remove")) return;
+            input.click();
+          });
+          input.addEventListener("change", function () {
+            if (input.files.length) handleSingleFile(type, input.files[0]);
+            input.value = "";
+          });
+          slot.addEventListener("dragover", function (e) { e.preventDefault(); slot.classList.add("dragover"); });
+          slot.addEventListener("dragleave", function (e) { e.preventDefault(); slot.classList.remove("dragover"); });
+          slot.addEventListener("drop", function (e) {
+            e.preventDefault(); slot.classList.remove("dragover");
+            if (e.dataTransfer.files.length) handleSingleFile(type, e.dataTransfer.files[0]);
+          });
+        }
+
+        function handleSingleFile(type, file) {
+          var expectedExts = type === "html" ? ["html", "htm"] : type === "css" ? ["css"] : type === "js" ? ["js"] : ["py"];
+          if (expectedExts.indexOf(extOf(file.name)) < 0) {
+            showToast("❌ Extensão inválida para " + type.toUpperCase() + ". Esperado: " + expectedExts.join("/"), "error", 4000);
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            state[type + "File"] = {
+              name: sanitizeName(file.name, type === "html" ? "index.html" : type === "css" ? "style.css" : type === "js" ? "script.js" : "app.py"),
+              content: e.target.result,
+              size: file.size,
+            };
+            updateSlotUI(type);
+            updateProcessButton();
+            showToast("✅ " + file.name + " carregado", "success", 2000);
+          };
+          reader.onerror = function () { showToast("❌ Erro ao ler " + file.name, "error"); };
+          reader.readAsText(file, "UTF-8");
+        }
+
+        function updateSlotUI(type) {
+          var slot = slots[type], file = state[type + "File"];
+          if (file) {
+            slot.classList.add("filled");
+            slotFiles[type].textContent = file.name + " (" + formatSize(file.size) + ")";
+          } else {
+            slot.classList.remove("filled");
+            slotFiles[type].textContent = "";
+          }
+        }
+        function updateProcessButton() { btnProcess.disabled = !(state.htmlFile || state.pyFile); }
+
+        document.querySelectorAll(".slot-remove").forEach(function (btn) {
+          btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var type = btn.dataset.remove;
+            state[type + "File"] = null;
+            updateSlotUI(type);
+            updateProcessButton();
+            state.result = null;
+            hideResult();
+          });
+        });
+
+        // ============ Factor JS ============
+        function factorJS(source) {
+          if (!source || !source.trim()) return { files: [], warnings: [] };
+          var warnings = [], files = [], mainParts = [], usedPaths = Object.create(null), ast, comments = [];
+          try {
+            ast = acorn.parse(source, { ecmaVersion: "latest", sourceType: "script", onComment: comments, allowHashBang: true });
+          } catch (eScript) {
+            try {
+              acorn.parse(source, { ecmaVersion: "latest", sourceType: "module", onComment: comments, allowHashBang: true });
+              warnings.push("O JavaScript usa import/export (ES Modules). Foi mantido intacto em um único arquivo para não quebrar as importações.");
+              return { files: [], warnings: warnings, fallback: true };
+            } catch (eModule) {
+              throw new Error("JavaScript inválido: " + eModule.message);
+            }
+          }
+          comments.sort(function (a, b) { return a.start - b.start; });
+          function commentsBetween(a, b) {
+            return comments.filter(function (c) { return c.start >= a && c.end <= b; }).map(function (c) { return source.slice(c.start, c.end); }).join("\n");
+          }
+          function uniquePath(folder, name) {
+            var safe = String(name || "arquivo").replace(/[^a-zA-Z0-9_$-]/g, "_");
+            var base = "js/" + folder + "/" + safe + ".js", path = base, n = 2;
+            while (usedPaths[path]) { path = "js/" + folder + "/" + safe + "_" + n++ + ".js"; }
+            usedPaths[path] = true;
+            return path;
+          }
+          var strict = ast.body.length && ast.body[0].type === "ExpressionStatement" && ast.body[0].expression.type === "Literal" && ast.body[0].expression.value === "use strict";
+          var firstIndex = strict ? 1 : 0, prevEnd = strict ? ast.body[0].end : 0;
+          ast.body.forEach(function (node, idx) {
+            if (idx < firstIndex) return;
+            var leading = commentsBetween(prevEnd, node.start), code = source.slice(node.start, node.end), full = (leading ? leading + "\n" : "") + code;
+            var folder = null, name = null;
+            if (node.type === "FunctionDeclaration" && node.id) { folder = "functions"; name = node.id.name; }
+            else if (node.type === "ClassDeclaration" && node.id) { folder = "classes"; name = node.id.name; }
+            else if (node.type === "VariableDeclaration" && node.declarations.length === 1 && node.declarations[0].id.type === "Identifier") {
+              name = node.declarations[0].id.name;
+              folder = /^[A-Z][A-Z0-9_]*$/.test(name) ? "constants" : "utils";
+            }
+            if (folder && name) files.push({ path: uniquePath(folder, name), content: full, order: node.start });
+            else mainParts.push({ content: full, order: node.start });
+            prevEnd = node.end;
+          });
+          var trailing = commentsBetween(prevEnd, source.length);
+          if (trailing) mainParts.push({ content: trailing, order: source.length + 1 });
+          if (mainParts.length) files.push({ path: "js/main.js", content: mainParts.sort(function (a, b) { return a.order - b.order; }).map(function (x) { return x.content; }).join("\n\n"), order: source.length + 2, isMain: true });
+          if (strict) files.forEach(function (f) { f.content = '"use strict";\n\n' + f.content; });
+          files.forEach(function (f) { if (!/\n$/.test(f.content)) f.content += "\n"; });
+          files.sort(function (a, b) { return a.order - b.order; });
+          if (files.length > 1) warnings.push("A fatoração separa declarações por arquivo, mas JavaScript pode depender de ordem, escopo global ou hoisting. Teste o projeto gerado.");
+          return { files: files, warnings: warnings, fallback: false };
+        }
+
+        // ============ Helpers para análise de Python ============
+        // Detecta estado de string tripla ao final de uma linha
+        function scanTripleQuotes(line) {
+          var i = 0, state = null;
+          while (i < line.length) {
+            var c = line[i];
+            if (state === null) {
+              if (c === "#" && (i === 0 || /\s/.test(line[i - 1]))) break;
+              if (line.slice(i, i + 3) === '"""') { state = '"""'; i += 3; continue; }
+              if (line.slice(i, i + 3) === "'''") { state = "'''"; i += 3; continue; }
+              if (c === '"') { state = '"'; i++; continue; }
+              if (c === "'") { state = "'"; i++; continue; }
+              i++;
+            } else if (state === '"""' || state === "'''") {
+              if (line.slice(i, i + 3) === state) { state = null; i += 3; continue; }
+              i++;
+            } else if (state === '"' || state === "'") {
+              if (c === "\\") { i += 2; continue; }
+              if (c === state) { state = null; i++; continue; }
+              i++;
+            }
+          }
+          return state;
+        }
+
+        // Remove strings e comentários (para contar brackets ignorando conteúdo)
+        function stripStringsAndComments(code) {
+          code = code.replace(/"""[\s\S]*?"""/g, '""');
+          code = code.replace(/'''[\s\S]*?'''/g, "''");
+          code = code.replace(/"[^"\\]*(?:\\.[^"\\]*)*"/g, '""');
+          code = code.replace(/'[^'\\]*(?:\\.[^'\\]*)*'/g, "''");
+          code = code.replace(/#[^\n]*/g, "");
+          return code;
+        }
+
+        // Conta brackets balanceados numa linha (ignorando strings/comentários)
+        function countBrackets(line) {
+          var stripped = stripStringsAndComments(line);
+          var delta = 0;
+          for (var i = 0; i < stripped.length; i++) {
+            var c = stripped[i];
+            if (c === "(" || c === "[" || c === "{") delta++;
+            else if (c === ")" || c === "]" || c === "}") delta--;
+          }
+          return delta;
+        }
+
+        // ============ Factor PYTHON v2.6 ============
+        function factorPY(source, entryName) {
+          if (!source || !source.trim()) return { files: [], warnings: [], fallback: false, skipped: true };
+
+          var warnings = [];
+          var lines = source.split("\n");
+
+          var shebang = "", encoding = "", startIdx = 0;
+          if (lines[0] && lines[0].startsWith("#!")) { shebang = lines[0]; startIdx = 1; }
+          if (lines[startIdx] && /coding[:=]\s*[-\w.]+/.test(lines[startIdx])) { encoding = lines[startIdx]; startIdx++; }
+
+          for (var k = startIdx; k < lines.length; k++) {
+            if (/^\s*from\s+\./.test(lines[k])) {
+              warnings.push('Import relativo detectado ("from .") — fatoração desativada.');
+              return { files: [], warnings: warnings, fallback: true };
+            }
+          }
+
+          // ─── 1) Encontrar def/class top-level ───
+          var blockStarts = [];
+          for (var i = startIdx; i < lines.length; i++) {
+            var line = lines[i];
+            var trimmed = line.trim();
+            var indent = line.length - line.trimStart().length;
+            if (indent !== 0) continue;
+            var isDef = /^(async\s+)?def\s+(\w+)/.test(trimmed);
+            var isClass = /^class\s+(\w+)/.test(trimmed);
+            if (!isDef && !isClass) continue;
+
+            var decStart = i;
+            while (decStart > startIdx) {
+              var prev = lines[decStart - 1];
+              var prevIndent = prev.length - prev.trimStart().length;
+              var prevTrim = prev.trim();
+              if (prevIndent === 0 && prevTrim.startsWith("@")) { decStart--; continue; }
+              if (prevIndent === 0 && (prevTrim === ")" || prevTrim === "]")) {
+                var look = decStart - 2;
+                while (look >= startIdx) {
+                  var ll = lines[look], lt = ll.trim(), li = ll.length - ll.trimStart().length;
+                  if (li === 0 && lt.startsWith("@")) { decStart = look; break; }
+                  if (li === 0 && lt !== "" && !lt.startsWith("@")) break;
+                  look--;
+                }
+                continue;
+              }
+              break;
+            }
+
+            var isRoute = false;
+            for (var da = decStart; da < i; da++) {
+              if (/^@app\./.test(lines[da].trim())) { isRoute = true; break; }
+            }
+
+            var name = isDef ? trimmed.match(/^(?:async\s+)?def\s+(\w+)/)[1] : trimmed.match(/^class\s+(\w+)/)[1];
+
+            blockStarts.push({
+              startLine: decStart, defLine: i, name: name,
+              type: isClass ? "class" : "function", isRoute: isRoute,
+            });
+          }
+
+          if (blockStarts.length === 0) {
+            warnings.push("Nenhuma função/classe top-level encontrada. Arquivo mantido intacto.");
+            return { files: [], warnings: warnings, fallback: false, noop: true };
+          }
+
+          // ─── 2) endLine: respeita strings triplas e brackets ───
+          function advanceState(line, st) {
+            var inTriple = st.inTriple, depth = st.bracketDepth;
+            if (inTriple) {
+              var idx = line.indexOf(inTriple);
+              if (idx === -1) return { inTriple: inTriple, bracketDepth: depth };
+              var rest = line.substring(idx + 3);
+              var det = scanTripleQuotes(rest);
+              if (det === '"""' || det === "'''") return { inTriple: det, bracketDepth: depth };
+              depth += countBrackets(rest);
+              return { inTriple: null, bracketDepth: Math.max(0, depth) };
+            }
+            var det2 = scanTripleQuotes(line);
+            if (det2 === '"""' || det2 === "'''") return { inTriple: det2, bracketDepth: depth };
+            var delta = countBrackets(line);
+            return { inTriple: null, bracketDepth: Math.max(0, depth + delta) };
+          }
+
+          for (var bi = 0; bi < blockStarts.length; bi++) {
+            var defLine = blockStarts[bi].defLine;
+            var scanIdx = defLine + 1;
+            var lastIndented = defLine;
+            var st = { inTriple: null, bracketDepth: 0 };
+            st = advanceState(lines[defLine], st);
+            while (scanIdx < lines.length) {
+              var ln = lines[scanIdx], lt = ln.trim(), li = ln.length - ln.trimStart().length;
+              if (st.inTriple || st.bracketDepth > 0) {
+                lastIndented = scanIdx;
+                st = advanceState(ln, st);
+                scanIdx++;
+                continue;
+              }
+              if (lt === "") { scanIdx++; continue; }
+              if (li === 0) break;
+              lastIndented = scanIdx;
+              st = advanceState(ln, st);
+              scanIdx++;
+            }
+            blockStarts[bi].endLine = lastIndented;
+          }
+
+          // ─── 3) Nomes duplicados ───
+          var nameCount = Object.create(null);
+          blockStarts.forEach(function (b) { nameCount[b.name] = (nameCount[b.name] || 0) + 1; });
+          var dupNames = Object.keys(nameCount).filter(function (n) { return nameCount[n] > 1; });
+          if (dupNames.length > 0) {
+            warnings.push("Nomes duplicados (" + dupNames.join(", ") + ") — mantidos no entry point.");
+          }
+
+          // ─── 3.5) Constantes e mutáveis ───
+          var moduleConstants = Object.create(null);
+          var moduleAssignCount = Object.create(null);
+          for (var mci = startIdx; mci < lines.length; mci++) {
+            var mcl = lines[mci];
+            var mcIndent = mcl.length - mcl.trimStart().length;
+            if (mcIndent !== 0) continue;
+            var mcTrim = mcl.trim();
+            if (/^(import|from)\s/.test(mcTrim)) continue;
+            if (/^(async\s+)?def\s/.test(mcTrim) || /^class\s/.test(mcTrim)) continue;
+            var mcm = mcTrim.match(/^([A-Za-z_]\w*)\s*[:=]/);
+            if (mcm) {
+              var mcName = mcm[1];
+              moduleAssignCount[mcName] = (moduleAssignCount[mcName] || 0) + 1;
+              if (/^[A-Z_][A-Z0-9_]*$/.test(mcName)) moduleConstants[mcName] = true;
+            }
+          }
+          for (var mn in moduleAssignCount) {
+            if (moduleAssignCount[mn] > 1) moduleConstants[mn] = true;
+          }
+          for (var gi = 0; gi < lines.length; gi++) {
+            var gm = lines[gi].match(/^\s+global\s+(.+)$/);
+            if (gm) { gm[1].split(",").forEach(function (g) { moduleConstants[g.trim()] = true; }); }
+          }
+          moduleConstants["app"] = true;
+
+          // ─── 4) Candidatos + Fixpoint transitivo ───
+          var candidatos = [];
+          blockStarts.forEach(function (b) {
+            if (nameCount[b.name] !== 1) return;
+            if (b.isRoute) return;
+            var bc = lines.slice(b.startLine, b.endLine + 1).join("\n");
+            for (var ccn in moduleConstants) {
+              if (new RegExp("\\b" + escapeRegex(ccn) + "\\b").test(bc)) return;
+            }
+            candidatos.push({ name: b.name, type: b.type, content: bc, startLine: b.startLine, endLine: b.endLine });
+          });
+
+          var blockedNames = Object.create(null);
+          blockStarts.forEach(function (b) {
+            if (nameCount[b.name] !== 1) { blockedNames[b.name] = "duplicada"; return; }
+            if (b.isRoute) { blockedNames[b.name] = "rota"; return; }
+            var bc = lines.slice(b.startLine, b.endLine + 1).join("\n");
+            for (var ccn in moduleConstants) {
+              if (new RegExp("\\b" + escapeRegex(ccn) + "\\b").test(bc)) { blockedNames[b.name] = "usa const"; return; }
+            }
+          });
+
+          var mudou = true, iter = 0;
+          while (mudou && iter < 30) {
+            mudou = false; iter++;
+            candidatos.forEach(function (c) {
+              if (blockedNames[c.name]) return;
+              for (var bn in blockedNames) {
+                if (bn === c.name) continue;
+                if (new RegExp("\\b" + escapeRegex(bn) + "\\b").test(c.content)) {
+                  blockedNames[c.name] = "usa bloqueado " + bn;
+                  mudou = true;
+                  return;
+                }
+              }
+            });
+          }
+
+          var moduleBlocks = [];
+          var inBlock = Object.create(null);
+          candidatos.forEach(function (c) {
+            if (blockedNames[c.name]) return;
+            moduleBlocks.push(c);
+            for (var z = c.startLine; z <= c.endLine; z++) inBlock[z] = true;
+          });
+
+          // ─── 5) Validação: re-montar e comparar ───
+          var blockByStart = Object.create(null);
+          blockStarts.forEach(function (b) { blockByStart[b.startLine] = b; });
+
+          var reassembled = [], idx = startIdx;
+          while (idx < lines.length) {
+            if (blockByStart[idx]) {
+              var bb = blockByStart[idx];
+              reassembled.push(lines.slice(bb.startLine, bb.endLine + 1).join("\n"));
+              idx = bb.endLine + 1;
+            } else {
+              reassembled.push(lines[idx]);
+              idx++;
+            }
+          }
+
+          var origNonEmpty = lines.slice(startIdx).filter(function (l) { return l.trim(); }).length;
+          var reasmNonEmpty = reassembled.join("\n").split("\n").filter(function (l) { return l.trim(); }).length;
+
+          if (Math.abs(origNonEmpty - reasmNonEmpty) > Math.max(3, Math.floor(origNonEmpty * 0.005))) {
+            warnings.push("❌ VALIDAÇÃO FALHOU: " + origNonEmpty + " vs " + reasmNonEmpty + " linhas. Fatoração cancelada.");
+            return { files: [], warnings: warnings, fallback: true };
+          }
+
+          // ─── 6) Main content ───
+          var mainLines = [];
+          for (var mi = startIdx; mi < lines.length; mi++) {
+            if (!inBlock[mi]) mainLines.push(lines[mi]);
+          }
+
+          // ─── 7) Separar imports ───
+          var imports = [], codeLines = [], parenDepth = 0;
+          for (var li = 0; li < mainLines.length; li++) {
+            var ml = mainLines[li], mt = ml.trim();
+            if (parenDepth > 0) {
+              imports.push(ml);
+              parenDepth += (ml.match(/\(/g) || []).length - (ml.match(/\)/g) || []).length;
+              continue;
+            }
+            var mIndent = ml.length - ml.trimStart().length;
+            if (mIndent === 0 && /^(import|from)\s/.test(mt)) {
+              imports.push(ml);
+              parenDepth = (ml.match(/\(/g) || []).length - (ml.match(/\)/g) || []).length;
+              continue;
+            }
+            codeLines.push(ml);
+          }
+          while (codeLines.length > 0 && !codeLines[0].trim()) codeLines.shift();
+          while (codeLines.length > 0 && !codeLines[codeLines.length - 1].trim()) codeLines.pop();
+
+          // ─── 8) Gerar módulos ───
+          var usedPaths = Object.create(null);
+          function getPath(block) {
+            var folder = block.type === "function" ? "functions" : "classes";
+            var safe = String(block.name || "mod").replace(/[^a-zA-Z0-9_]/g, "_");
+            var base = "py/" + folder + "/" + safe + ".py", path = base, n = 2;
+            while (usedPaths[path]) { path = "py/" + folder + "/" + safe + "_" + n++ + ".py"; }
+            usedPaths[path] = true;
+            return path;
+          }
+          function moduleName(path) { return path.replace(/\.py$/, "").replace(/\//g, "."); }
+
+          moduleBlocks.forEach(function (b) { b._path = getPath(b); b._module = moduleName(b._path); });
+
+          var files = [], mainImports = [];
+          moduleBlocks.forEach(function (b) {
+            var needed = [];
+            imports.forEach(function (imp) {
+              var fm = imp.match(/^\s*from\s+([\w.]+)\s+import\s+(.+)$/);
+              if (fm) {
+                var names = fm[2].split(",").map(function (n) { return n.trim().split(/\s+as\s+/).pop().trim(); }).filter(Boolean);
+                names.forEach(function (n) {
+                  if (!n || n === "*") return;
+                  if (new RegExp("\\b" + escapeRegex(n) + "\\b").test(b.content)) {
+                    if (needed.indexOf(imp) < 0) needed.push(imp);
+                  }
+                });
+                return;
+              }
+              var im = imp.match(/^\s*import\s+([\w.]+)/);
+              if (im) {
+                var alias = imp.split(/\s+as\s+/).pop().trim();
+                if (new RegExp("\\b" + escapeRegex(alias) + "\\b").test(b.content)) {
+                  if (needed.indexOf(imp) < 0) needed.push(imp);
+                }
+              }
+            });
+            moduleBlocks.forEach(function (other) {
+              if (other.name === b.name) return;
+              if (new RegExp("\\b" + escapeRegex(other.name) + "\\b").test(b.content)) {
+                var defRx = new RegExp("^\\s*(?:async\\s+)?def\\s+" + escapeRegex(other.name) + "\\b|^\\s*class\\s+" + escapeRegex(other.name) + "\\b", "m");
+                if (!defRx.test(b.content)) {
+                  var impStr = "from " + other._module + " import " + other.name;
+                  if (needed.indexOf(impStr) < 0) needed.push(impStr);
+                }
+              }
+            });
+            var content = "";
+            if (shebang) content += shebang + "\n";
+            if (encoding) content += encoding + "\n";
+            if (needed.length > 0) content += needed.join("\n") + "\n\n";
+            content += b.content + "\n";
+            files.push({ path: b._path, content: content, type: "py" });
+            mainImports.push("from " + b._module + " import " + b.name);
+          });
+
+          // ─── 9) Entry point ───
+          var mainContent = "";
+          if (shebang) mainContent += shebang + "\n";
+          if (encoding) mainContent += encoding + "\n";
+          if (imports.length > 0) mainContent += imports.join("\n") + "\n\n";
+          if (mainImports.length > 0) mainContent += mainImports.join("\n") + "\n\n";
+          if (codeLines.length > 0) mainContent += codeLines.join("\n") + "\n";
+          files.push({ path: entryName, content: mainContent, type: "py-main" });
+
+          // ─── 10) __init__.py ───
+          var folders = new Set();
+          files.forEach(function (f) {
+            var parts = f.path.split("/");
+            for (var z = 1; z < parts.length; z++) folders.add(parts.slice(0, z).join("/"));
+          });
+          folders.forEach(function (folder) {
+            files.push({ path: folder + "/__init__.py", content: "", type: "py-init" });
+          });
+
+          // ─── 11) requirements.txt ───
+          var PY_STDLIB = new Set([
+            "os","sys","re","json","math","random","datetime","time","collections","itertools","functools",
+            "urllib","http","socket","threading","asyncio","pathlib","typing","subprocess","shutil","glob",
+            "csv","sqlite3","logging","unittest","argparse","configparser","hashlib","hmac","base64","secrets",
+            "struct","pickle","copy","enum","abc","dataclasses","decimal","fractions","statistics","uuid","io",
+            "tempfile","traceback","warnings","weakref","zlib","gzip","bz2","lzma","tarfile","zipfile","smtplib",
+            "email","ftplib","xml","html","unicodedata","string","textwrap","difflib","pprint","reprlib","numbers",
+            "cmath","operator","contextlib","inspect","importlib","pkgutil","modulefinder","runpy","sysconfig",
+            "builtins","__future__","multiprocessing","concurrent","queue","select","signal","ssl","stat","timeit",
+            "token","tokenize","trace","tracemalloc","types","venv","webbrowser",
+          ]);
+          var PIP_MAPPING = {
+            PIL: "Pillow", cv2: "opencv-python", dotenv: "python-dotenv", sklearn: "scikit-learn",
+            skimage: "scikit-image", bs4: "beautifulsoup4", yaml: "PyYAML", flask_compress: "Flask-Compress",
+            flask_cors: "Flask-Cors", flask_sqlalchemy: "Flask-SQLAlchemy", flask_login: "Flask-Login",
+            flask_migrate: "Flask-Migrate", flask_wtf: "Flask-WTF", jwt: "PyJWT", dateutil: "python-dateutil",
+            serial: "pyserial", usb: "pyusb", psycopg2: "psycopg2-binary", "mysql.connector": "mysql-connector-python",
+            sqlalchemy: "SQLAlchemy",
+          };
+          var extPackages = new Set();
+          imports.forEach(function (imp) {
+            var fm = imp.match(/^\s*from\s+([\w.]+)\s+import/);
+            if (fm) {
+              var root = fm[1].split(".")[0];
+              if (!PY_STDLIB.has(root) && root !== "__future__") extPackages.add(root);
+              return;
+            }
+            var im = imp.match(/^\s*import\s+([\w.]+)/);
+            if (im) {
+              var root2 = im[1].split(".")[0];
+              if (!PY_STDLIB.has(root2) && root2 !== "__future__") extPackages.add(root2);
+            }
+          });
+          if (optPyRequirements.checked && extPackages.size > 0) {
+            var pips = new Set();
+            extPackages.forEach(function (p) { pips.add(PIP_MAPPING[p] || p); });
+            files.push({ path: "requirements.txt", content: Array.from(pips).sort().join("\n") + "\n", type: "txt" });
+          }
+
+          // ─── 12) Backup do original ───
+          files.push({ path: entryName.replace(/\.py$/, "_ORIGINAL.py.bak"), content: source, type: "bak" });
+
+          // ─── 13) Log ───
+          console.log("[factorPY v2.6] ✅ " + moduleBlocks.length + " extraídos | " + Object.keys(blockedNames).length + " bloqueados | " + imports.length + " imports | " + codeLines.length + " linhas main");
+
+          return { files: files, warnings: warnings, fallback: false };
+        }
+
+        // ============ Rewrite HTML ============
+        function rewriteHTML(htmlContent, cssFileName, scriptPaths, originalJsName, originalCssName) {
+          var doc = new DOMParser().parseFromString(htmlContent, "text/html");
+          var doctypeMatch = htmlContent.match(/<!DOCTYPE[^>]*>/i);
+          var doctype = doctypeMatch ? doctypeMatch[0] : "<!DOCTYPE html>";
+          function sameLocalFile(src, expected) {
+            if (!src || !expected || /^(?:[a-z]+:)?\/\//i.test(src) || /^(?:data:|blob:|#)/i.test(src)) return false;
+            var clean = src.split(/[?#]/)[0].replace(/\\/g, "/");
+            var base = clean.substring(clean.lastIndexOf("/") + 1);
+            return clean === expected || base === expected || base === expected.split("/").pop();
+          }
+          if (cssFileName && originalCssName) {
+            var cssReplaced = false;
+            doc.querySelectorAll('link[rel~="stylesheet"]').forEach(function (link) {
+              var href = link.getAttribute("href") || "";
+              if (sameLocalFile(href, originalCssName)) { link.setAttribute("href", cssFileName); cssReplaced = true; }
+            });
+            if (!cssReplaced) {
+              var head = doc.querySelector("head") || doc.documentElement;
+              var link = doc.createElement("link"); link.rel = "stylesheet"; link.href = cssFileName; head.appendChild(link);
+            }
+          }
+          var jsReplaced = false;
+          if (originalJsName) {
+            doc.querySelectorAll("script[src]").forEach(function (script) {
+              var src = script.getAttribute("src") || "";
+              if (sameLocalFile(src, originalJsName)) {
+                if (!jsReplaced && scriptPaths && scriptPaths.length) {
+                  var parent = script.parentNode;
+                  scriptPaths.forEach(function (path) { var s = doc.createElement("script"); s.setAttribute("src", path); parent.insertBefore(s, script); });
+                  jsReplaced = true;
+                }
+                script.remove();
+              }
+            });
+          }
+          if (!jsReplaced && scriptPaths && scriptPaths.length) {
+            var body = doc.querySelector("body");
+            if (!body) { body = doc.createElement("body"); doc.documentElement.appendChild(body); }
+            scriptPaths.forEach(function (path) { var s = doc.createElement("script"); s.setAttribute("src", path); body.appendChild(s); });
+          }
+          return doctype + "\n" + doc.documentElement.outerHTML;
+        }
+
+        function addJSHeader(content, path, originalName, date) {
+          return "/*\n * " + path + " — fatorado\n * Original: " + originalName + "\n * Data: " + date + "\n * Fatorador PRO v2.6\n */\n\n" + content;
+        }
+        function addPYHeader(content, path, originalName, date) {
+          var header = "# " + path + " — fatorado\n# Original: " + originalName + "\n# Data: " + date + "\n# Fatorador PRO v2.6\n\n";
+          if (content.startsWith("#!")) {
+            var nl = content.indexOf("\n");
+            if (nl === -1) return content + "\n" + header;
+            return content.slice(0, nl + 1) + header + content.slice(nl + 1);
+          }
+          return header + content;
+        }
+
+        function processAll() {
+          if (isProcessing) return;
+          if (!state.htmlFile && !state.pyFile) { showToast("⚠️ Adicione HTML ou Python primeiro", "warning"); return; }
+
+          isProcessing = true;
+          btnProcess.disabled = true;
+          progressContainer.classList.add("show");
+          progressBar.style.width = "10%";
+
+          try {
+            var warnings = [];
+            var files = [];
+
+            if (state.htmlFile) {
+              var jsModules = [];
+              if (state.jsFile) {
+                try {
+                  var factored = factorJS(state.jsFile.content);
+                  if (factored.fallback) jsModules = [{ path: state.jsFile.name, content: state.jsFile.content }];
+                  else if (factored.files.length > 0) jsModules = factored.files.map(function (f) { return { path: f.path, content: f.content }; });
+                  else warnings.push("JS vazio");
+                  warnings = warnings.concat(factored.warnings || []);
+                } catch (err) {
+                  jsModules = [{ path: state.jsFile.name, content: state.jsFile.content }];
+                  warnings.push("Erro ao fatorar JS: " + err.message + " — mantido intacto");
+                }
+              }
+              if (optAddHeader.checked) {
+                var date = new Date().toLocaleString("pt-BR");
+                jsModules.forEach(function (mod) { mod.content = addJSHeader(mod.content, mod.path, state.jsFile.name, date); });
+              }
+              var scriptPaths = jsModules.map(function (m) { return m.path; });
+              var newHTML = rewriteHTML(state.htmlFile.content, state.cssFile ? state.cssFile.name : null, scriptPaths, state.jsFile ? state.jsFile.name : null, state.cssFile ? state.cssFile.name : null);
+              files.push({ path: state.htmlFile.name, content: newHTML, type: "html" });
+              if (state.cssFile) files.push({ path: state.cssFile.name, content: state.cssFile.content, type: "css" });
+              jsModules.forEach(function (mod) { files.push({ path: mod.path, content: mod.content, type: "js" }); });
+            }
+
+            progressBar.style.width = "50%";
+
+            if (state.pyFile) {
+              try {
+                var pyResult = factorPY(state.pyFile.content, state.pyFile.name);
+                if (pyResult.skipped) {
+                  warnings.push("Python vazio");
+                } else if (pyResult.fallback) {
+                  files.push({ path: state.pyFile.name, content: state.pyFile.content, type: "py-main" });
+                  warnings = warnings.concat(pyResult.warnings || []);
+                } else if (pyResult.noop) {
+                  files.push({ path: state.pyFile.name, content: state.pyFile.content, type: "py-main" });
+                  warnings = warnings.concat(pyResult.warnings || []);
+                } else {
+                  if (optAddHeader.checked) {
+                    var date2 = new Date().toLocaleString("pt-BR");
+                    pyResult.files.forEach(function (f) {
+                      if (f.type === "py" || f.type === "py-main") f.content = addPYHeader(f.content, f.path, state.pyFile.name, date2);
+                    });
+                  }
+                  pyResult.files.forEach(function (f) { files.push(f); });
+                  warnings = warnings.concat(pyResult.warnings || []);
+                }
+              } catch (err) {
+                files.push({ path: state.pyFile.name, content: state.pyFile.content, type: "py-main" });
+                warnings.push("Erro ao fatorar Python: " + err.message + " — mantido intacto");
+              }
+            }
+
+            progressBar.style.width = "95%";
+            state.result = { files: files, warnings: warnings, baseName: getBaseName(), htmlName: state.htmlFile ? state.htmlFile.name : "" };
+
+            progressBar.style.width = "100%";
+            setTimeout(function () { progressContainer.classList.remove("show"); progressBar.style.width = "0%"; }, 600);
+
+            renderResult();
+            var countHtml = files.filter(function (f) { return f.type === "html"; }).length;
+            var countPy = files.filter(function (f) { return /^py/.test(f.type); }).length;
+            var msg = "✅ Projeto gerado! " + files.length + " arquivo(s)";
+            if (countHtml && countPy) msg += " (Web + Python)";
+            else if (countPy) msg += " (Python)";
+            else if (countHtml) msg += " (Web)";
+            showToast(msg, "success", 4000);
+          } catch (err) {
+            console.error(err);
+            showToast("❌ " + err.message, "error", 5000);
+            progressContainer.classList.remove("show");
+            progressBar.style.width = "0%";
+          } finally {
+            isProcessing = false;
+            updateProcessButton();
+          }
+        }
+
+        function renderResult() {
+          if (!state.result) { hideResult(); return; }
+          emptyResult.style.display = "none";
+          resultContainer.style.display = "block";
+          var files = state.result.files;
+          fileCount.textContent = files.length + " arquivo" + (files.length === 1 ? "" : "s");
+          if (state.result.warnings && state.result.warnings.length > 0) {
+            warningsList.innerHTML = state.result.warnings.map(function (w) { return "<li>" + escapeHtml(w) + "</li>"; }).join("");
+            warningsPanel.classList.add("show");
+          } else {
+            warningsPanel.classList.remove("show");
+          }
+          var hasHTML = files.some(function (f) { return f.type === "html"; });
+          btnPreview.style.display = hasHTML ? "inline-flex" : "none";
+          renderTree();
+          if (files.length > 0) {
+            var htmlFile = files.find(function (f) { return f.type === "html"; });
+            if (htmlFile) selectFile(htmlFile.path);
+            else selectFile(files[0].path);
+          }
+        }
+
+        function hideResult() {
+          resultContainer.style.display = "none";
+          emptyResult.style.display = "block";
+          warningsPanel.classList.remove("show");
+          selectedFile = null;
+          viewerTitle.textContent = "📄 Selecione um arquivo";
+          fileViewer.innerHTML = '<span style="color:#94a3b8;font-style:italic;">Clique em um arquivo na árvore para visualizar.</span>';
+          btnCopyFile.disabled = true;
+          btnDownloadFile.disabled = true;
+        }
+
+        function renderTree() {
+          var files = state.result.files;
+          var root = { folders: {}, files: [] };
+          files.forEach(function (f) {
+            var parts = f.path.split("/");
+            var cur = root;
+            for (var i = 0; i < parts.length - 1; i++) {
+              if (!cur.folders[parts[i]]) cur.folders[parts[i]] = { folders: {}, files: [] };
+              cur = cur.folders[parts[i]];
+            }
+            cur.files.push({ name: parts[parts.length - 1], path: f.path, type: f.type, content: f.content });
+          });
+          var html = "";
+          function render(node, depth) {
+            Object.keys(node.folders).sort().forEach(function (name) {
+              html += '<div class="tree-node folder" style="padding-left:' + (8 + depth * 16) + 'px;">📁 ' + escapeHtml(name) + "</div>";
+              render(node.folders[name], depth + 1);
+            });
+            node.files.forEach(function (f) {
+              var icon = iconForFile(f);
+              var active = selectedFile === f.path ? " active" : "";
+              html += '<div class="tree-node' + active + '" data-path="' + escapeHtml(f.path) + '" style="padding-left:' + (8 + depth * 16) + 'px;">' + icon + " " + escapeHtml(f.name) + '<span class="size">' + f.content.length + "c</span></div>";
+            });
+          }
+          render(root, 0);
+          treeContent.innerHTML = html;
+          treeContent.querySelectorAll(".tree-node[data-path]").forEach(function (el) {
+            el.addEventListener("click", function () { selectFile(el.dataset.path); });
+          });
+        }
+
+        function selectFile(path) {
+          if (!state.result) return;
+          var f = state.result.files.find(function (x) { return x.path === path; });
+          if (!f) return;
+          selectedFile = path;
+          viewerTitle.textContent = "📄 " + path;
+          fileViewer.textContent = f.content || "(arquivo vazio)";
+          btnCopyFile.disabled = false;
+          btnDownloadFile.disabled = false;
+          treeContent.querySelectorAll(".tree-node[data-path]").forEach(function (el) {
+            if (el.dataset.path === path) el.classList.add("active");
+            else el.classList.remove("active");
+          });
+        }
+
+        function buildPreviewHTML() {
+          if (!state.result) return "";
+          var files = state.result.files;
+          var htmlFile = files.find(function (f) { return f.type === "html"; });
+          if (!htmlFile) return "";
+          var doc = new DOMParser().parseFromString(htmlFile.content, "text/html");
+          var fileMap = {};
+          files.forEach(function (f) { fileMap[f.path] = f.content; });
+          doc.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+            var href = link.getAttribute("href") || "";
+            if (fileMap[href]) { var style = doc.createElement("style"); style.textContent = fileMap[href]; link.parentNode.replaceChild(style, link); }
+          });
+          var CS = "<" + "/" + "script";
+          var CS_ESC = "<" + "\\" + "/" + "script";
+          doc.querySelectorAll("script[src]").forEach(function (script) {
+            var src = script.getAttribute("src") || "";
+            if (fileMap[src]) { script.removeAttribute("src"); script.textContent = fileMap[src].split(CS).join(CS_ESC); }
+          });
+          return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+        }
+
+        function showPreview() {
+          if (!state.result) { showToast("⚠️ Nada para visualizar", "warning"); return; }
+          previewTitle.textContent = "👁️ Preview — " + state.result.htmlName;
+          previewFrame.srcdoc = buildPreviewHTML();
+          previewModal.classList.add("show");
+          document.body.style.overflow = "hidden";
+        }
+        function closePreview() {
+          previewModal.classList.remove("show");
+          document.body.style.overflow = "";
+          previewFrame.srcdoc = "";
+        }
+
+        function downloadFile(content, filename) {
+          if (!content && content !== "") return;
+          var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+        }
+
+        function downloadZip() {
+          if (!state.result) { showToast("⚠️ Nada para baixar", "warning"); return; }
+          if (typeof JSZip === "undefined") { showToast("❌ JSZip não carregado", "error"); return; }
+          var zip = new JSZip();
+          state.result.files.forEach(function (f) { zip.file(f.path, f.content); });
+          var zipName = state.result.baseName + "_fatorado.zip";
+          showToast("📦 Gerando ZIP...", "info", 1500);
+          zip.generateAsync({ type: "blob", compression: "DEFLATE" }).then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url; a.download = zipName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+            showToast("✅ " + zipName, "success");
+          }).catch(function (e) { showToast("❌ " + e.message, "error"); });
+        }
+
+        function clearAll() {
+          if (isProcessing) { showToast("⚠️ Aguarde o processamento", "warning"); return; }
+          state.htmlFile = null; state.cssFile = null; state.jsFile = null; state.pyFile = null; state.result = null;
+          selectedFile = null;
+          Object.keys(inputs).forEach(function (k) { inputs[k].value = ""; });
+          Object.keys(slotFiles).forEach(function (k) { slotFiles[k].textContent = ""; });
+          Object.keys(slots).forEach(function (k) { slots[k].classList.remove("filled"); });
+          updateProcessButton();
+          hideResult();
+          showToast("🧹 Limpo!", "info");
+        }
+
+        attachUploadSlot("html");
+        attachUploadSlot("css");
+        attachUploadSlot("js");
+        attachUploadSlot("py");
+        btnProcess.addEventListener("click", processAll);
+        btnClearAll.addEventListener("click", clearAll);
+        btnPreview.addEventListener("click", showPreview);
+        btnDownloadZip.addEventListener("click", downloadZip);
+
+        btnCopyFile.addEventListener("click", function () {
+          if (!selectedFile || !state.result) return;
+          var f = state.result.files.find(function (x) { return x.path === selectedFile; });
+          if (!f) return;
+          navigator.clipboard.writeText(f.content).then(function () { showToast("📋 Copiado!", "success", 1500); }).catch(function () { showToast("❌ Falha ao copiar", "error"); });
+        });
+        btnDownloadFile.addEventListener("click", function () {
+          if (!selectedFile || !state.result) return;
+          var f = state.result.files.find(function (x) { return x.path === selectedFile; });
+          if (!f) return;
+          downloadFile(f.content, selectedFile.split("/").pop());
+          showToast("✅ " + selectedFile.split("/").pop(), "success", 1500);
+        });
+
+        previewClose.addEventListener("click", closePreview);
+        previewModal.addEventListener("click", function (e) { if (e.target === previewModal) closePreview(); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape" && previewModal.classList.contains("show")) closePreview(); });
+
+        btnToggleDebug.addEventListener("click", function () {
+          debugMode = !debugMode;
+          localStorage.setItem("debugMode", JSON.stringify(debugMode));
+          this.textContent = debugMode ? "🐛 Debug ON" : "🐛 Debug OFF";
+          this.style.background = debugMode ? "#27ae60" : "#9b59b6";
+          showToast("🔍 Debug " + (debugMode ? "ativado" : "desativado"), "info");
+        });
+        if (debugMode) { btnToggleDebug.textContent = "🐛 Debug ON"; btnToggleDebug.style.background = "#27ae60"; }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.ctrlKey && e.key === "Enter" && !btnProcess.disabled) { e.preventDefault(); processAll(); }
+        });
+
+        updateProcessButton();
+        console.log("✅ Fatorador PRO v2.6 pronto!");
+        showToast("💡 Fatorador PRO v2.6 — Web + Python!", "info", 4000);
+      })();
+    </script>
+  </body>
+</html>
